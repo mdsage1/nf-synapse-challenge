@@ -3,9 +3,9 @@
 nextflow.enable.dsl = 2
 
 // Synapse ID for Submission View
-params.view_id = "syn51356905"
+params.view_id = "syn53239158"
 // Synapse ID for Input Data folder
-params.input_id = "syn51390589"
+params.input_id = "syn53239289"
 // Default CPUs to dedicate to RUN_DOCKER
 params.cpus = "4"
 // Default Memory to dedicate to RUN_DOCKER
