@@ -4,13 +4,13 @@ process GET_SUBMISSIONS {
     container "sagebionetworks/synapsepythonclient:v2.7.0"
 
     input:
-    val view
+    val view_id
 
     output:
     path "images.csv"
 
     script:
     """
-    get_submissions.py '${view}'
+    get_submissions.py '${view_id}'
     """
 }
