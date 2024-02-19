@@ -27,7 +27,14 @@ def get_args():
 
 
 def get_expected_filenames(eval_id: str) -> List[str]:
-    """Generates a list of expected filename patterns based on the evaluation ID."""
+    """Generates a list of expected filename patterns based on the evaluation ID.
+
+    Arguments:
+        eval_id: The evaluation ID.
+
+    Returns:
+        A list of expected filename patterns.
+    """
     expected_systems = [
         "doublependulum",
         "Lorenz",
@@ -68,10 +75,10 @@ def get_eval_id(syn: synapseclient.Synapse, submission_id: str) -> str:
 
     Arguments:
         syn: Synapse connection
-        submission_id (str): the id of submission
+        submission_id: the id of submission
 
     Returns:
-        sub_id (str): the evaluation ID, or None if an error occurs.
+        sub_id: the evaluation ID, or None if an error occurs.
     """
     try:
         eval_id = syn.getSubmission(submission_id).get("evaluationId")
