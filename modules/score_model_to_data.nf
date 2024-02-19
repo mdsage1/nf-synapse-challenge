@@ -1,11 +1,10 @@
-// validate submission results
-process SCORE {
+// score submission results for model to data challenges
+process SCORE_MODEL_TO_DATA {
     secret "SYNAPSE_AUTH_TOKEN"
     container "python:3.12.0rc1"
 
     input:
     tuple val(submission_id), path(predictions), val(status), path(results)
-    path staged_path
     val status_ready
     val annotate_ready
     val scoring_script
@@ -15,6 +14,6 @@ process SCORE {
 
     script:
     """
-    ${scoring_script} '${submission_id}' '${status}' '${predictions}' '${staged_path}' '${results}'
+    ${scoring_script} '${predictions}' '${results}' '${status}'
     """
 }
