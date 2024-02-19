@@ -1,27 +1,43 @@
 #!/usr/bin/env python3
 
-# import argparse
+import argparse
 import json
 import os
-import sys
+
+# import sys
 import tarfile
 import numpy as np
+from typing import Tuple, List
+import synapseclient
+
 # import matplotlib.pyplot as plt
 
 
-# def get_args():
-#     """Set up command-line interface and get arguments."""
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("-p", "--predictions_path", type=str, required=True)
-#     parser.add_argument("-g", "--goldstandard_path", type=str, required=True)
-#     parser.add_argument("-s", "--status", type=str, required=True)
-#     parser.add_argument("-o", "--output", type=str, default="results.json")
-#     return parser.parse_args()
+def get_args():
+    """Set up command-line interface and get arguments without any flags."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("submission_id", type=str, help="The ID of submission")
+    parser.add_argument("status", type=str, help="The status of submission")
+    parser.add_argument(
+        "predictions_path", type=str, help="The path to the predictions folder"
+    )
+    parser.add_argument(
+        "groundtruth_path", type=str, help="The path to the ground truth folder"
+    )
+    parser.add_argument(
+        "output",
+        type=str,
+        nargs="?",
+        default="results.json",
+        help="The path to output file",
+    )
+
+    return parser.parse_args()
 
 
-def tar(directory, tar_filename):
+# Since it's a data-to-model challenge, users will take care of taring their predictions locally
+def tar(directory, tar_filename) -> None:
     """Tar all files in a directory without including the directory
-
     Args:
         directory: Directory path to files to tar
         tar_filename:  tar file path
@@ -29,13 +45,12 @@ def tar(directory, tar_filename):
     with tarfile.open(tar_filename, "w") as tar_o:
         original_dir = os.getcwd()
         os.chdir(directory)
-
-        for file in os.listdir('.'):
+        for file in os.listdir("."):
             tar_o.add(file, arcname=file)
         os.chdir(original_dir)
 
 
-def untar(directory, tar_filename):
+def untar(directory, tar_filename) -> None:
     """Untar a tar file into a directory
 
     Args:
@@ -46,11 +61,14 @@ def untar(directory, tar_filename):
         tar_o.extractall(path=directory)
 
 
-def forecast_scoring(truth: str, prediction: str, k: int, modes: int) -> (float, float):
-    '''Produce long-time and short-time error scores.'''
+def ODE_forecast(
+    truth: np.ndarray, prediction: np.ndarray, k: int, modes: int
+) -> Tuple[float, float]:
+    """Produce long-time and short-time error scores."""
     [m, n] = truth.shape
-    Est = np.linalg.norm(truth[:, 0:k]-prediction[:, 0:k],
-                         2)/np.linalg.norm(truth[:, 0:k], 2)
+    Est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
+        truth[:, 0:k], 2
+    )
 
     yt = truth[-modes:, :]
     M = np.arange(-20, 21, 1)
@@ -64,66 +82,207 @@ def forecast_scoring(truth: str, prediction: str, k: int, modes: int) -> (float,
     yhistyp, xhisty = np.histogram(yp[1, :], bins=M)
     yhistzp, xhistz = np.histogram(yp[2, :], bins=M2)
 
-    Eltx = np.linalg.norm(yhistxt-yhistxp, 2)/np.linalg.norm(yhistxt, 2)
-    Elty = np.linalg.norm(yhistyt-yhistyp, 2)/np.linalg.norm(yhistyt, 2)
-    Eltz = np.linalg.norm(yhistzt-yhistzp, 2)/np.linalg.norm(yhistzt, 2)
+    norm_yhistxt = np.linalg.norm(yhistxt, 2)
+    Eltx = (
+        np.linalg.norm(yhistxt - yhistxp, 2) / norm_yhistxt if norm_yhistxt > 0 else 0
+    )
+    norm_yhistyt = np.linalg.norm(yhistyt, 2)
+    Elty = (
+        np.linalg.norm(yhistyt - yhistyp, 2) / norm_yhistyt if norm_yhistyt > 0 else 0
+    )
+    norm_yhistzt = np.linalg.norm(yhistzt, 2)
+    Eltz = (
+        np.linalg.norm(yhistzt - yhistzp, 2) / norm_yhistzt if norm_yhistzt > 0 else 0
+    )
 
-    Elt = (Eltx+Elty+Eltz)/3
+    Elt = (Eltx + Elty + Eltz) / 3
 
-    E1 = 100*(1-Est)
-    E2 = 100*(1-Elt)
+    E1 = 100 * (1 - Est)
+    E2 = 100 * (1 - Elt)
 
     return E1, E2
 
 
-def reconstruction_scoring(truth: str, prediction: str) -> float:
-    '''Produce reconstruction fit score.'''
+def PDE_forecast(
+    truth: np.ndarray, prediction: np.ndarray, k: int, modes: int
+) -> Tuple[float, float]:
+    """produce long-time and short-time error scores."""
     [m, n] = truth.shape
-    Est = np.linalg.norm(truth-prediction, 2)/np.linalg.norm(truth, 2)
+    Est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
+        truth[:, 0:k], 2
+    )
 
-    E1 = 100*(1-Est)
+    m2 = 2 * modes + 1
+    Pt = np.empty((m2, 0))
+    Pp = np.empty((m2, 0))
+
+    # LONG TIME:  Compute least-square fit to power spectra
+    for j in range(1, k + 1):
+        P_truth = np.multiply(
+            np.abs(np.fft.fft(truth[:, n - j])), np.abs(np.fft.fft(truth[:, n - j]))
+        )
+        P_prediction = np.multiply(
+            np.abs(np.fft.fft(prediction[:, n - j])),
+            np.abs(np.fft.fft(prediction[:, n - j])),
+        )
+        Pt3 = np.fft.fftshift(P_truth)
+        Pp3 = np.fft.fftshift(P_prediction)
+        Ptnew = Pt3[int(m / 2) - modes : int(m / 2) + modes + 1]
+        Ppnew = Pp3[
+            int(m / 2) - modes : int(m / 2) + modes + 1
+        ]  # Fixed the variable name
+
+        Pt = np.column_stack((Pt, np.log(Ptnew)))
+        Pp = np.column_stack((Pp, np.log(Ppnew)))
+
+    Elt = np.linalg.norm(Pt - Pp, 2) / np.linalg.norm(Pt, 2)
+
+    E1 = 100 * (1 - Est)
+    E2 = 100 * (1 - Elt)
+
+    return E1, E2
+
+
+def PDE_forecast_2D(
+    truth: np.ndarray, prediction: np.ndarray, k: int, modes: int, nf: int
+) -> Tuple[float, float]:
+    """produce long-time and short-time error scores."""
+    [m, n] = truth.shape
+    Est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
+        truth[:, 0:k], 2
+    )
+
+    m2 = 2 * modes + 1
+    Pt = np.empty((m2, 0))
+    Pp = np.empty((m2, 0))
+
+    # LONG TIME:  Compute least-square fit to power spectra
+    for j in range(1, k + 1):
+        truth_fft = np.abs(np.fft.fft2(truth[:, n - j].reshape((nf, nf), order="F")))
+        prediction_fft = np.abs(
+            np.fft.fft2(prediction[:, n - j].reshape((nf, nf), order="F"))
+        )
+        P_truth = np.multiply(truth_fft, truth_fft)
+        P_prediction = np.multiply(prediction_fft, prediction_fft)
+        #        P_truth = np.multiply(np.abs(np.fft.fft(truth[:, n-j])), np.abs(np.fft.fft(truth[:, n-j])))
+        #        P_prediction = np.multiply(np.abs(np.fft.fft(prediction[:, n-j])), np.abs(np.fft.fft(prediction[:, n-j])))
+        Pt3 = np.fft.fftshift(P_truth[:, int(nf / 2) + 1])
+        Pp3 = np.fft.fftshift(P_prediction[:, int(nf / 2) + 1])
+
+        Ptnew = Pt3[int(nf / 2) - modes : int(nf / 2) + modes + 1]
+        # Fixed the variable name
+        Ppnew = Pp3[int(nf / 2) - modes : int(nf / 2) + modes + 1]
+        print(Ptnew.shape)
+
+        Pt = np.column_stack((Pt, np.log(Ptnew)))
+        Pp = np.column_stack((Pp, np.log(Ppnew)))
+
+    Elt = np.linalg.norm(Pt - Pp, 2) / np.linalg.norm(Pt, 2)
+    E1 = 100 * (1 - Est)
+    E2 = 100 * (1 - Elt)
+
+    return E1, E2
+
+
+def forecast(truth: np.ndarray, prediction: np.ndarray, system: str) -> List[float]:
+    print(system)
+    system_to_forecast = {
+        "doublependulum": {
+            "function": ODE_forecast,
+            "params": {"k": 20, "modes": 1000},
+        },
+        "Lorenz": {"function": ODE_forecast, "params": {"k": 20, "modes": 1000}},
+        "Rossler": {"function": ODE_forecast, "params": {"k": 20, "modes": 1000}},
+        "KS": {"function": PDE_forecast, "params": {"k": 20, "modes": 100}},
+        "Lorenz96": {"function": PDE_forecast, "params": {"k": 20, "modes": 30}},
+        "Kolmogorov": {
+            "function": PDE_forecast_2D,
+            "params": {"k": 20, "modes": 30, "nf": 128},
+        },
+    }
+
+    if system in system_to_forecast:
+        forecast_func = system_to_forecast[system]["function"]
+        forecast_params = system_to_forecast[system]["params"]
+        scores = forecast_func(truth, prediction, **forecast_params)
+        print(scores)
+        return list(scores)
+    else:
+        return []
+
+
+def reconstruction(truth: np.ndarray, prediction: np.ndarray) -> float:
+    """Produce reconstruction fit score."""
+    [m, n] = truth.shape
+    Est = np.linalg.norm(truth - prediction, 2) / np.linalg.norm(truth, 2)
+
+    E1 = 100 * (1 - Est)
 
     return E1
 
 
 # TODO: Not final, update once organizers confirm all inputs and metrics
-def calculate_all_scores(groundtruth_path: str, predictions_path: str, k: int, modes: int) -> dict:
-    '''Calculate scores across all testing datasets.'''
+def calculate_all_scores(
+    groundtruth_path: str, predictions_path: str, evaluation_id: str
+) -> dict:
+    """Calculate scores across all testing datasets."""
     score_result = {}
+    task_mapping = {
+        "9615379": [("X1", "forecast", ["stf_E1", "ltf_E2"], [0, 1])],  # Task1
+        "9615532": [  # Task2
+            ("X2", "reconstruction", ["recon_E3"], [0]),
+            ("X3", "forecast", ["ltf_E4"], [1]),
+            ("X4", "reconstruction", ["recon_E5"], [0]),
+            ("X5", "forecast", ["ltf_E6"], [1]),
+        ],
+        "9615534": [("X6", "forecast", ["stf_E7", "ltf_E8"], [0, 1])],  # Task3
+        "9615535": [  # Task4
+            ("X7", "forecast", ["stf_E9", "ltf_E10"], [0, 1]),
+            ("X8", "reconstruction", ["recon_E11"], [0]),
+            ("X9", "reconstruction", ["recon_E12"], [0]),
+        ],
+    }
 
-    files_and_metrics = [
-        ('X1', 'forecast', ['E1', 'E2'], [0, 1]),
-        ('X2', 'reconstruction', ['E3'], [0]),
-        ('X3', 'forecast', ['E4'], [1]),
-        ('X4', 'reconstruction', ['E5'], [0]),
-        ('X5', 'forecast', ['E6'], [1]),
-        ('X6', 'forecast', ['E7', 'E8'], [0, 1]),
-        ('X7', 'forecast', ['E9', 'E10'], [0, 1]),
-        ('X8', 'reconstruction', ['E11'], [0]),
-        ('X9', 'reconstruction', ['E12'], [0])
-    ]
+    # get mapping of inputs and outs for specific task
+    task_info = task_mapping.get(evaluation_id)
 
-    for file_prefix, score_metric, keys, score_indices in files_and_metrics:
-        truth_path = os.path.join(groundtruth_path, f'{file_prefix}test.npy')
-        pred_path = os.path.join(
-            predictions_path, f'{file_prefix}prediction.npy')
+    # get unique systems
+    pred_files = os.listdir(predictions_path)
+    pred_systems = list(set(f.split("_")[0] for f in pred_files))
+    true_systems = ["doublependulum", "Lorenz", "Rossler", "Lorenz96", "KS"]
+    unique_systems = list(set(true_systems) & set(pred_systems))
 
-        truth = np.load(truth_path)
-        pred = np.load(pred_path)
+    for system in unique_systems:
+        print(system)
+        for prefix, score_metric, score_keys, score_indices in task_info:
+            truth_path = os.path.join(
+                groundtruth_path, f"Test_{system}/{prefix}test.npy"
+            )
+            pred_path = os.path.join(
+                predictions_path, f"{system}_{prefix}prediction.npy"
+            )
 
-        if score_metric == 'forecast':
-            scores = forecast_scoring(truth, pred, k, modes)
-        else:
-            scores = (reconstruction_scoring(truth, pred),)
+            print(truth_path)
+            print(pred_path)
 
-        for key, index in zip(keys, score_indices):
-            score_result[key] = scores[index]
+            truth = np.load(truth_path)
+            pred = np.load(pred_path)
+
+            if score_metric == "forecast":
+                scores = forecast(truth, pred, system)
+            else:
+                scores = (reconstruction(truth, pred),)
+
+            for key, index in zip(score_keys, score_indices):
+                score_result[f"{system}_{key}"] = scores[index]
 
     return score_result
 
 
-def score_submission(groundtruth_path: str, predictions_path: str,  k: int, modes: int, status: str) -> dict:
-    '''Determine the score of a submission.
+def score_submission(
+    groundtruth_path: str, predictions_path: str, evaluation_id: str, status: str
+) -> dict:
+    """Determine the score of a submission.
 
     Args:
         predictions_path (str): path to the predictions file
@@ -131,28 +290,29 @@ def score_submission(groundtruth_path: str, predictions_path: str,  k: int, mode
 
     Returns:
         result (dict): dictionary containing score, status and errors
-    '''
-    if status == 'INVALID':
-        score_status = 'INVALID'
+    """
+    if status == "INVALID":
+        score_status = "INVALID"
         scores = None
     else:
         try:
             # assume predictions are compressed into a tarball file
             # untar the predictions into 'predictions' folder
-            untar("predictions", tar_filename="predictions.tar")
+            untar("predictions", tar_filename=predictions_path)
             # score the predictions
             scores = calculate_all_scores(
-                groundtruth_path, "predictions", k, modes)
-            score_status = 'SCORED'
-            message = ''
+                groundtruth_path, "predictions", evaluation_id
+            )
+            score_status = "SCORED"
+            message = ""
         except Exception as e:
-            message = f'Error {e} occurred while scoring'
+            message = f"Error {e} occurred while scoring"
             scores = None
-            score_status = 'INVALID'
+            score_status = "INVALID"
 
     result = {
-        'score_status': score_status,
-        'score_errors': message,
+        "score_status": score_status,
+        "score_errors": message,
     }
 
     if scores:
@@ -161,40 +321,62 @@ def score_submission(groundtruth_path: str, predictions_path: str,  k: int, mode
     return score_status, result
 
 
+def get_eval_id(syn: synapseclient.Synapse, submission_id: str) -> str:
+    """Get evaluation id for the submission
+
+    Args:
+        syn: Synapse connection
+        submission_id (str): the id of submission
+
+    Returns:
+        sub_id (str): the evaluation ID, or None if an error occurs.
+    """
+    try:
+        eval_id = syn.getSubmission(submission_id).get("evaluationId")
+        return eval_id
+    except Exception as e:
+        print(
+            f"An error occurred while retrieving the evaluation ID for submission {submission_id}: {e}"
+        )
+
+
 def update_json(results_path: str, result: dict) -> None:
-    '''Update the results.json file with the current score and status
+    """Update the results.json file with the current score and status
 
     Args:
         results_path (str): path to the results.json file
         result (dict): dictionary containing score, status and errors
-    '''
+    """
     file_size = os.path.getsize(results_path)
-    with open(results_path, 'r') as o:
+    with open(results_path, "r") as o:
         data = json.load(o) if file_size else {}
     data.update(result)
-    with open(results_path, 'w') as o:
+    with open(results_path, "w") as o:
         o.write(json.dumps(data))
 
 
-if __name__ == '__main__':
-    # args = parser.parse_args()
-    # groundtruth_path = args.groundtruth_path
-    # predictions_path = args.predictions_path
-    # status = args.status
-    # results_path = args.output
+if __name__ == "__main__":
+    args = get_args()
+    sub_id = args.submission_id
+    status = args.status
+    predictions_path = args.predictions_path
+    groundtruth_path = args.groundtruth_path
+    results_path = args.output
 
-    predictions_path = sys.argv[1]
-    results_path = sys.argv[2]
-    status = sys.argv[3]
-    # TODO: Not final, might need to add the gs path in the calculate_all_scores function
-    groundtruth_path = 'Test_Lorenz/'
+    # login to synapase
+    syn = synapseclient.Synapse()
+    syn.login()
 
-    k = 20  # number of snapshots to test for short time
-    modes = 1000
+    # get the evaluation ID to identify corresponding scoring parameters
+    eval_id = get_eval_id(syn, sub_id)
 
-    # Update the scores and status for the submsision
+    # get scores of submission
     score_status, result = score_submission(
-        groundtruth_path, predictions_path, k, modes, status)
-    with open(results_path, 'w') as file:
+        groundtruth_path, predictions_path, eval_id, status
+    )
+    print(result)
+
+    # update the scores and status for the submsision
+    with open(results_path, "w") as file:
         update_json(results_path, result)
     print(score_status)
