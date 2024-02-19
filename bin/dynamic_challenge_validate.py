@@ -52,7 +52,7 @@ def get_expected_filenames(eval_id: str) -> List[str]:
 def untar(directory: str, tar_filename: str, pattern="*") -> None:
     """Untar a tar file into a directory
 
-    Args:
+    Arguments:
         directory: Path to directory to untar files
         tar_filename:  tar file path
     """
@@ -66,7 +66,7 @@ def untar(directory: str, tar_filename: str, pattern="*") -> None:
 def get_eval_id(syn: synapseclient.Synapse, submission_id: str) -> str:
     """Get evaluation id for the submission
 
-    Args:
+    Arguments:
         syn: Synapse connection
         submission_id (str): the id of submission
 

@@ -36,7 +36,7 @@ def get_args():
 # Since it's a data-to-model challenge, users will take care of taring their predictions locally
 def tar(directory, tar_filename) -> None:
     """Tar all files in a directory without including the directory
-    Args:
+    Arguments:
         directory: Directory path to files to tar
         tar_filename:  tar file path
     """
@@ -51,7 +51,7 @@ def tar(directory, tar_filename) -> None:
 def untar(directory, tar_filename) -> None:
     """Untar a tar file into a directory
 
-    Args:
+    Arguments:
         directory: Path to directory to untar files
         tar_filename:  tar file path
     """
@@ -208,7 +208,7 @@ def forecast(truth: np.ndarray, prediction: np.ndarray, system: str) -> List[flo
 def reconstruction(truth: np.ndarray, prediction: np.ndarray) -> float:
     """Produce reconstruction fit score.
 
-    Args:
+    Arguments:
         truth: comparison data
         prediction: predicted data
 
@@ -228,7 +228,7 @@ def calculate_all_scores(
 ) -> dict:
     """Calculate scores across all testing datasets.
 
-    Args:
+    Arguments:
         groundtruth_path: path to the groundtruth folder
         predictions_path: path to the predictions file
         evaluation_id: id of the evaluation queue
@@ -297,7 +297,7 @@ def score_submission(
 ) -> typing.Tuple[str, dict]:
     """Determine the score of a submission.
 
-    Args:
+    Arguments:
         predictions_path: path to the predictions file
         status: current submission status
 
@@ -337,7 +337,7 @@ def score_submission(
 def get_eval_id(syn: synapseclient.Synapse, submission_id: str) -> str:
     """Get evaluation id for the submission
 
-    Args:
+    Arguments:
         syn: Synapse connection
         submission_id: the id of submission
 
@@ -356,7 +356,7 @@ def get_eval_id(syn: synapseclient.Synapse, submission_id: str) -> str:
 def update_json(results_path: str, result: dict) -> None:
     """Update the results.json file with the current score and status
 
-    Args:
+    Arguments:
         results_path: path to the results.json file
         result: dictionary containing score, status and errors
     """
