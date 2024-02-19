@@ -5,7 +5,7 @@ nextflow.enable.dsl = 2
 // Synapse ID for Submission View
 params.view_id = "syn52658661"
 // Scoring Script
-params.scoring_script = "score.py"
+params.scoring_script = "data_to_model_score.py"
 // Validation Script
 params.validation_script = "validate.py"
 // Testing Data

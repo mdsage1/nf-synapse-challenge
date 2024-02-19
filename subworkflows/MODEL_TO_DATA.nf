@@ -15,7 +15,7 @@ params.cpus = "4"
 // Default Memory to dedicate to RUN_DOCKER
 params.memory = "16.GB"
 // Scoring Script
-params.scoring_script = "score.py"
+params.scoring_script = "model_to_data_score.py"
 // Validation Script
 params.validation_script = "validate.py"
 
