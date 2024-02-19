@@ -3,7 +3,7 @@ process VALIDATE {
     tag "${submission_id}"
     
     secret "SYNAPSE_AUTH_TOKEN"
-    container "python:3.12.0rc1"
+    container "sagebionetworks/synapsepythonclient:v4.0.0"
 
     input:
     tuple val(submission_id), path(predictions)
