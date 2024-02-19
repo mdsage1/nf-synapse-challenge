@@ -4,7 +4,8 @@ import json
 import sys
 
 if __name__ == "__main__":
-    predictions_path = sys.argv[1]
+    submision_id = sys.argv[1]
+    predictions_path = sys.argv[2]
     invalid_reasons = []
     if predictions_path is None:
         prediction_status = "INVALID"

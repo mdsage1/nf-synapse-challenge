@@ -15,6 +15,6 @@ process VALIDATE {
 
     script:
     """
-    ${validation_script} '${predictions}'
+    ${validation_script} '${submission_id}' '${predictions}'
     """
 }
