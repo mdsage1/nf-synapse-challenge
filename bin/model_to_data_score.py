@@ -6,6 +6,7 @@ import os
 import sys
 import zipfile
 
+
 def score_submission(predictions_path: str, status: str) -> dict:
     """Determine the score of a submission. This is a placeholder function.
 
@@ -23,7 +24,7 @@ def score_submission(predictions_path: str, status: str) -> dict:
         # Unzipping the predictions and extracting the files in
         # the current working directory
         if ".zip" in os.path.basename(predictions_path):
-            with zipfile.ZipFile(predictions_path, 'r') as zip_ref:
+            with zipfile.ZipFile(predictions_path, "r") as zip_ref:
                 for zip_info in zip_ref.infolist():
                     if zip_info.is_dir():
                         continue
