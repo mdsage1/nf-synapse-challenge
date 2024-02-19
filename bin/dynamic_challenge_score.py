@@ -384,8 +384,7 @@ if __name__ == "__main__":
     )
 
     # update the scores and status for the submsision
-    with open(results_path, "w") as file:
-        update_json(results_path, result)
+    update_json(results_path, result)
 
     # print the status - captured by the workflow outputs
     print(score_status)
