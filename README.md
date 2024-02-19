@@ -92,6 +92,7 @@ The workflow requires the following inputs:
 1. `view_id` (required): The Synapse ID for your submission view.
 2. `scoring_script` (required): The string name of the scoring script to use for the `SCORE` step of the workflow run. Defaults to `score.py`
 3. `validation_script` (required): The string name of the validation script to use for the `VALIDATE` step of the workflow run. Defaults to `validate.py`
+4. `testing_data` (required): The Synapse ID for the folder holding the testing data for submissions.
 
 Run the workflow locally with default inputs:
 ```
@@ -102,18 +103,19 @@ nextflow run main.nf -entry DATA_TO_MODEL_CHALLENGE -profile local
 
 ```mermaid
   flowchart LR;
-    A[GET SUBMISSIONS]-->B([NEW SUBMISSIONS?]);
-    B-->|YES|C[UPDATE STATUS];
-    B-->|NO|END;
-    C-->D[DOWNLOAD SUBMISSIONS];
-    D-->E[VALIDATE];
-    E-->F[UPDATE STATUS];
-    E-->G[ANNOTATE];
-    F-->H[SCORE];
-    G-->H;
-    H-->I[UPDATE STATUS];
-    H-->J[ANNOTATE];
-    I-->END;
+    A[SYNAPSE STAGE]-->I[SCORE];
+    B[GET SUBMISSIONS]-->C([NEW SUBMISSIONS?]);
+    C-->|YES|D[UPDATE STATUS];
+    C-->|NO|END;
+    D-->E[DOWNLOAD SUBMISSIONS];
+    E-->F[VALIDATE];
+    F-->G[UPDATE STATUS];
+    F-->H[ANNOTATE];
+    G-->I[SCORE];
+    H-->I;
+    I-->J[UPDATE STATUS];
+    I-->K[ANNOTATE];
+    J-->END;
 ```
 
 ## Profiles
