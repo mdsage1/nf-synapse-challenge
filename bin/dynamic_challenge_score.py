@@ -59,100 +59,99 @@ def untar(directory, tar_filename) -> None:
         tar_o.extractall(path=directory)
 
 
-def ODE_forecast(
+def ode_forecast(
     truth: np.ndarray, prediction: np.ndarray, k: int, modes: int
 ) -> Tuple[float, float]:
     """Produce long-time and short-time error scores."""
-    [m, n] = truth.shape
-    Est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
+    est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
         truth[:, 0:k], 2
     )
 
     yt = truth[-modes:, :]
     M = np.arange(-20, 21, 1)
     M2 = np.arange(0, 51, 1)
-    yhistxt, xhistx = np.histogram(yt[0, :], bins=M)
-    yhistyt, xhisty = np.histogram(yt[1, :], bins=M)
-    yhistzt, xhistz = np.histogram(yt[2, :], bins=M2)
+    yhistxt, _ = np.histogram(yt[0, :], bins=M)
+    yhistyt, _ = np.histogram(yt[1, :], bins=M)
+    yhistzt, _ = np.histogram(yt[2, :], bins=M2)
 
     yp = prediction[-modes:, :]
-    yhistxp, xhistx = np.histogram(yp[0, :], bins=M)
-    yhistyp, xhisty = np.histogram(yp[1, :], bins=M)
-    yhistzp, xhistz = np.histogram(yp[2, :], bins=M2)
+    yhistxp, _ = np.histogram(yp[0, :], bins=M)
+    yhistyp, _ = np.histogram(yp[1, :], bins=M)
+    yhistzp, _ = np.histogram(yp[2, :], bins=M2)
 
     norm_yhistxt = np.linalg.norm(yhistxt, 2)
-    Eltx = (
+    eltx = (
         np.linalg.norm(yhistxt - yhistxp, 2) / norm_yhistxt if norm_yhistxt > 0 else 0
     )
     norm_yhistyt = np.linalg.norm(yhistyt, 2)
-    Elty = (
+    elty = (
         np.linalg.norm(yhistyt - yhistyp, 2) / norm_yhistyt if norm_yhistyt > 0 else 0
     )
     norm_yhistzt = np.linalg.norm(yhistzt, 2)
-    Eltz = (
+    eltz = (
         np.linalg.norm(yhistzt - yhistzp, 2) / norm_yhistzt if norm_yhistzt > 0 else 0
     )
 
-    Elt = (Eltx + Elty + Eltz) / 3
+    elt = (eltx + elty + eltz) / 3
 
-    E1 = 100 * (1 - Est)
-    E2 = 100 * (1 - Elt)
+    E1 = 100 * (1 - est)
+    E2 = 100 * (1 - elt)
 
     return E1, E2
 
 
-def PDE_forecast(
+def pde_forecast(
     truth: np.ndarray, prediction: np.ndarray, k: int, modes: int
 ) -> Tuple[float, float]:
     """produce long-time and short-time error scores."""
     [m, n] = truth.shape
-    Est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
+    est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
         truth[:, 0:k], 2
     )
 
     m2 = 2 * modes + 1
-    Pt = np.empty((m2, 0))
-    Pp = np.empty((m2, 0))
+    pt = np.empty((m2, 0))
+    pp = np.empty((m2, 0))
 
     # LONG TIME:  Compute least-square fit to power spectra
     for j in range(1, k + 1):
-        P_truth = np.multiply(
+        p_truth = np.multiply(
             np.abs(np.fft.fft(truth[:, n - j])), np.abs(np.fft.fft(truth[:, n - j]))
         )
-        P_prediction = np.multiply(
+        p_prediction = np.multiply(
             np.abs(np.fft.fft(prediction[:, n - j])),
             np.abs(np.fft.fft(prediction[:, n - j])),
         )
-        Pt3 = np.fft.fftshift(P_truth)
-        Pp3 = np.fft.fftshift(P_prediction)
-        Ptnew = Pt3[int(m / 2) - modes : int(m / 2) + modes + 1]
-        Ppnew = Pp3[
+        pt3 = np.fft.fftshift(p_truth)
+        pp3 = np.fft.fftshift(p_prediction)
+        ptnew = pt3[int(m / 2) - modes : int(m / 2) + modes + 1]
+        ppnew = pp3[
             int(m / 2) - modes : int(m / 2) + modes + 1
         ]  # Fixed the variable name
 
-        Pt = np.column_stack((Pt, np.log(Ptnew)))
-        Pp = np.column_stack((Pp, np.log(Ppnew)))
+        pt = np.column_stack((pt, np.log(ptnew)))
+        pp = np.column_stack((pp, np.log(ppnew)))
 
-    Elt = np.linalg.norm(Pt - Pp, 2) / np.linalg.norm(Pt, 2)
+    elt = np.linalg.norm(pt - pp, 2) / np.linalg.norm(pt, 2)
 
-    E1 = 100 * (1 - Est)
-    E2 = 100 * (1 - Elt)
+    E1 = 100 * (1 - est)
+    E2 = 100 * (1 - elt)
 
     return E1, E2
 
 
-def PDE_forecast_2D(
+def pde_forecast_2d(
     truth: np.ndarray, prediction: np.ndarray, k: int, modes: int, nf: int
 ) -> Tuple[float, float]:
     """produce long-time and short-time error scores."""
-    [m, n] = truth.shape
-    Est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
+    [_, n] = truth.shape
+    est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
         truth[:, 0:k], 2
     )
 
     m2 = 2 * modes + 1
-    Pt = np.empty((m2, 0))
-    Pp = np.empty((m2, 0))
+    pt = np.empty((m2, 0))
+    pp = np.empty((m2, 0))
 
     # LONG TIME:  Compute least-square fit to power spectra
     for j in range(1, k + 1):
@@ -160,23 +159,23 @@ def PDE_forecast_2D(
         prediction_fft = np.abs(
             np.fft.fft2(prediction[:, n - j].reshape((nf, nf), order="F"))
         )
-        P_truth = np.multiply(truth_fft, truth_fft)
-        P_prediction = np.multiply(prediction_fft, prediction_fft)
+        p_truth = np.multiply(truth_fft, truth_fft)
+        p_prediction = np.multiply(prediction_fft, prediction_fft)
         #        P_truth = np.multiply(np.abs(np.fft.fft(truth[:, n-j])), np.abs(np.fft.fft(truth[:, n-j])))
         #        P_prediction = np.multiply(np.abs(np.fft.fft(prediction[:, n-j])), np.abs(np.fft.fft(prediction[:, n-j])))
-        Pt3 = np.fft.fftshift(P_truth[:, int(nf / 2) + 1])
-        Pp3 = np.fft.fftshift(P_prediction[:, int(nf / 2) + 1])
+        pt3 = np.fft.fftshift(p_truth[:, int(nf / 2) + 1])
+        pp3 = np.fft.fftshift(p_prediction[:, int(nf / 2) + 1])
 
-        Ptnew = Pt3[int(nf / 2) - modes : int(nf / 2) + modes + 1]
+        ptnew = pt3[int(nf / 2) - modes : int(nf / 2) + modes + 1]
         # Fixed the variable name
-        Ppnew = Pp3[int(nf / 2) - modes : int(nf / 2) + modes + 1]
+        ppnew = pp3[int(nf / 2) - modes : int(nf / 2) + modes + 1]
 
-        Pt = np.column_stack((Pt, np.log(Ptnew)))
-        Pp = np.column_stack((Pp, np.log(Ppnew)))
+        pt = np.column_stack((pt, np.log(ptnew)))
+        pp = np.column_stack((pp, np.log(ppnew)))
 
-    Elt = np.linalg.norm(Pt - Pp, 2) / np.linalg.norm(Pt, 2)
-    E1 = 100 * (1 - Est)
-    E2 = 100 * (1 - Elt)
+    elt = np.linalg.norm(pt - pp, 2) / np.linalg.norm(pt, 2)
+    E1 = 100 * (1 - est)
+    E2 = 100 * (1 - elt)
 
     return E1, E2
 
@@ -184,15 +183,15 @@ def PDE_forecast_2D(
 def forecast(truth: np.ndarray, prediction: np.ndarray, system: str) -> List[float]:
     system_to_forecast = {
         "doublependulum": {
-            "function": ODE_forecast,
+            "function": ode_forecast,
             "params": {"k": 20, "modes": 1000},
         },
-        "Lorenz": {"function": ODE_forecast, "params": {"k": 20, "modes": 1000}},
-        "Rossler": {"function": ODE_forecast, "params": {"k": 20, "modes": 1000}},
-        "KS": {"function": PDE_forecast, "params": {"k": 20, "modes": 100}},
-        "Lorenz96": {"function": PDE_forecast, "params": {"k": 20, "modes": 30}},
+        "Lorenz": {"function": ode_forecast, "params": {"k": 20, "modes": 1000}},
+        "Rossler": {"function": ode_forecast, "params": {"k": 20, "modes": 1000}},
+        "KS": {"function": pde_forecast, "params": {"k": 20, "modes": 100}},
+        "Lorenz96": {"function": pde_forecast, "params": {"k": 20, "modes": 30}},
         "Kolmogorov": {
-            "function": PDE_forecast_2D,
+            "function": pde_forecast_2d,
             "params": {"k": 20, "modes": 30, "nf": 128},
         },
     }
@@ -216,10 +215,9 @@ def reconstruction(truth: np.ndarray, prediction: np.ndarray) -> float:
     Returns:
         E1: reconstruction fit score
     """
-    [m, n] = truth.shape
-    Est = np.linalg.norm(truth - prediction, 2) / np.linalg.norm(truth, 2)
+    est = np.linalg.norm(truth - prediction, 2) / np.linalg.norm(truth, 2)
 
-    E1 = 100 * (1 - Est)
+    E1 = 100 * (1 - est)
 
     return E1
 
@@ -261,7 +259,14 @@ def calculate_all_scores(
     # get unique systems
     pred_files = os.listdir(predictions_path)
     pred_systems = list(set(f.split("_")[0] for f in pred_files))
-    true_systems = ["doublependulum", "Lorenz", "Rossler", "Lorenz96", "KS"]
+    true_systems = [
+        "doublependulum",
+        "Lorenz",
+        "Rossler",
+        "Lorenz96",
+        "KS",
+        "Kolmogorov",
+    ]
     unique_systems = list(set(true_systems) & set(pred_systems))
 
     for system in unique_systems:
