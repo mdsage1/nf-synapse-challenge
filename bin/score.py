@@ -59,11 +59,9 @@ def update_json(results_path: str, result: dict) -> None:
 
 
 if __name__ == "__main__":
-    submisison_id = sys.argv[1]
-    status = sys.argv[2]
-    predictions_path = sys.argv[3]
-    staged_path = sys.argv[4]
-    results_path = sys.argv[5]
+    predictions_path = sys.argv[1]
+    results_path = sys.argv[2]
+    status = sys.argv[3]
     score_status, result = score_submission(predictions_path, status)
     update_json(results_path, result)
     print(score_status)
