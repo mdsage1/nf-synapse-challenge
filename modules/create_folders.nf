@@ -1,5 +1,7 @@
 // builds or updates the subfolders with log and predictions files
 process CREATE_FOLDERS {
+    tag "${submission_id}"
+    
     secret "SYNAPSE_AUTH_TOKEN"
     container "sagebionetworks/synapsepythonclient:v4.0.0"
 

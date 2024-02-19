@@ -1,5 +1,7 @@
 // validate submission results
-process VALIDATE {    
+process VALIDATE {
+    tag "${submission_id}"
+    
     secret "SYNAPSE_AUTH_TOKEN"
     container "python:3.12.0rc1"
 
