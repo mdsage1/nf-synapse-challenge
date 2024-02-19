@@ -1,7 +1,7 @@
+#!/usr/bin/env python3
+
 # This is a placeholder for the validation script for the Dynamic Challenge
 # All it does is check if the predictions file is a tarball
-
-#!/usr/bin/env python3
 
 import json
 import sys
