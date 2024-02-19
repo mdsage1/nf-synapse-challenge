@@ -32,7 +32,7 @@ include { UPDATE_SUBMISSION_STATUS as UPDATE_SUBMISSION_STATUS_AFTER_RUN } from 
 include { UPDATE_SUBMISSION_STATUS as UPDATE_SUBMISSION_STATUS_AFTER_VALIDATE } from '../modules/update_submission_status.nf'
 include { UPDATE_SUBMISSION_STATUS as UPDATE_SUBMISSION_STATUS_AFTER_SCORE } from '../modules/update_submission_status.nf'
 include { VALIDATE } from '../modules/validate.nf'
-include { SCORE } from '../modules/score.nf'
+include { SCORE_MODEL_TO_DATA as SCORE } from '../modules/score_model_to_data.nf'
 include { ANNOTATE_SUBMISSION as ANNOTATE_SUBMISSION_AFTER_VALIDATE } from '../modules/annotate_submission.nf'
 include { ANNOTATE_SUBMISSION as ANNOTATE_SUBMISSION_AFTER_SCORE } from '../modules/annotate_submission.nf'
 include { SEND_EMAIL } from '../modules/send_email.nf'
@@ -50,7 +50,7 @@ workflow MODEL_TO_DATA {
     VALIDATE(RUN_DOCKER.output, UPDATE_SUBMISSION_STATUS_AFTER_RUN.output, params.validation_script)
     UPDATE_SUBMISSION_STATUS_AFTER_VALIDATE(VALIDATE.output.map { tuple(it[0], it[2]) })
     ANNOTATE_SUBMISSION_AFTER_VALIDATE(VALIDATE.output)
-    SCORE(VALIDATE.output, SYNAPSE_STAGE.output, UPDATE_SUBMISSION_STATUS_AFTER_VALIDATE.output, ANNOTATE_SUBMISSION_AFTER_VALIDATE.output, params.scoring_script)
+    SCORE(VALIDATE.output, UPDATE_SUBMISSION_STATUS_AFTER_VALIDATE.output, ANNOTATE_SUBMISSION_AFTER_VALIDATE.output, params.scoring_script)
     UPDATE_SUBMISSION_STATUS_AFTER_SCORE(SCORE.output.map { tuple(it[0], it[2]) })
     ANNOTATE_SUBMISSION_AFTER_SCORE(SCORE.output)
     SEND_EMAIL(params.view_id, image_ch.map { it[0] }, params.email_with_score, ANNOTATE_SUBMISSION_AFTER_SCORE.output)
