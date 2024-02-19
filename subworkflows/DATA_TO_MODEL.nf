@@ -3,11 +3,13 @@
 nextflow.enable.dsl = 2
 
 // Synapse ID for Submission View
-params.view_id = "syn52576179"
+params.view_id = "syn52658661"
 // Scoring Script
 params.scoring_script = "score.py"
 // Validation Script
 params.validation_script = "validate.py"
+// Testing Data
+params.testing_data = "syn53627077"
 
 // import modules
 include { SYNAPSE_STAGE } from '../modules/synapse_stage.nf'
@@ -22,6 +24,7 @@ include { ANNOTATE_SUBMISSION as ANNOTATE_SUBMISSION_AFTER_VALIDATE } from '../m
 include { ANNOTATE_SUBMISSION as ANNOTATE_SUBMISSION_AFTER_SCORE } from '../modules/annotate_submission.nf'
 
 workflow DATA_TO_MODEL {
+    SYNAPSE_STAGE(params.testing_data, "testing_data")
     GET_SUBMISSIONS(params.view_id)
     image_ch = GET_SUBMISSIONS.output 
         .splitCsv(header:true) 
@@ -31,7 +34,7 @@ workflow DATA_TO_MODEL {
     VALIDATE(DOWNLOAD_SUBMISSION.output, "ready", params.validation_script)
     UPDATE_SUBMISSION_STATUS_AFTER_VALIDATE(VALIDATE.output.map { tuple(it[0], it[2]) })
     ANNOTATE_SUBMISSION_AFTER_VALIDATE(VALIDATE.output)
-    SCORE(VALIDATE.output, UPDATE_SUBMISSION_STATUS_AFTER_VALIDATE.output, ANNOTATE_SUBMISSION_AFTER_VALIDATE.output, params.scoring_script)
+    SCORE(VALIDATE.output, SYNAPSE_STAGE.output, UPDATE_SUBMISSION_STATUS_AFTER_VALIDATE.output, "ready", params.scoring_script)
     UPDATE_SUBMISSION_STATUS_AFTER_SCORE(SCORE.output.map { tuple(it[0], it[2]) })
     ANNOTATE_SUBMISSION_AFTER_SCORE(SCORE.output)
 }
