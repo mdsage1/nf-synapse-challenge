@@ -1,4 +1,6 @@
-// builds or updates the subfolders with log and predictions files
+// Takes in (submission_id, create_or_update) and project_name to create
+// root and subfolders for the designated Challenge Project on Synapse
+
 process CREATE_FOLDERS {
     tag "${submission_id}"
     
@@ -6,15 +8,14 @@ process CREATE_FOLDERS {
     container "sagebionetworks/synapsepythonclient:v4.0.0"
 
     input:
-    tuple val(submission_id), val(build_or_update)
+    tuple val(submission_id), val(create_or_update)
     val project_name
-    val ready
 
     output:
     val "ready"
 
     script:
     """
-    create_folders.py '${project_name}' '${submission_id}' '${build_or_update}'
+    create_folders.py '${project_name}' '${submission_id}' '${create_or_update}'
     """
 }
