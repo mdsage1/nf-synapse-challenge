@@ -3,14 +3,12 @@
 import argparse
 import json
 import os
+import typing
 
-# import sys
 import tarfile
 import numpy as np
 from typing import Tuple, List
 import synapseclient
-
-# import matplotlib.pyplot as plt
 
 
 def get_args():
@@ -185,7 +183,6 @@ def PDE_forecast_2D(
 
 
 def forecast(truth: np.ndarray, prediction: np.ndarray, system: str) -> List[float]:
-    print(system)
     system_to_forecast = {
         "doublependulum": {
             "function": ODE_forecast,
@@ -212,7 +209,15 @@ def forecast(truth: np.ndarray, prediction: np.ndarray, system: str) -> List[flo
 
 
 def reconstruction(truth: np.ndarray, prediction: np.ndarray) -> float:
-    """Produce reconstruction fit score."""
+    """Produce reconstruction fit score.
+
+    Args:
+        truth: comparison data
+        prediction: predicted data
+
+    Returns:
+        E1: reconstruction fit score
+    """
     [m, n] = truth.shape
     Est = np.linalg.norm(truth - prediction, 2) / np.linalg.norm(truth, 2)
 
@@ -225,7 +230,16 @@ def reconstruction(truth: np.ndarray, prediction: np.ndarray) -> float:
 def calculate_all_scores(
     groundtruth_path: str, predictions_path: str, evaluation_id: str
 ) -> dict:
-    """Calculate scores across all testing datasets."""
+    """Calculate scores across all testing datasets.
+
+    Args:
+        groundtruth_path: path to the groundtruth folder
+        predictions_path: path to the predictions file
+        evaluation_id: id of the evaluation queue
+
+    Returns:
+        score_result: dictionary containing scores
+    """
     score_result = {}
     task_mapping = {
         "9615379": [("X1", "forecast", ["stf_E1", "ltf_E2"], [0, 1])],  # Task1
@@ -281,15 +295,15 @@ def calculate_all_scores(
 
 def score_submission(
     groundtruth_path: str, predictions_path: str, evaluation_id: str, status: str
-) -> dict:
+) -> typing.Tuple[str, dict]:
     """Determine the score of a submission.
 
     Args:
-        predictions_path (str): path to the predictions file
-        status (str): current submission status
+        predictions_path: path to the predictions file
+        status: current submission status
 
     Returns:
-        result (dict): dictionary containing score, status and errors
+        Tuple: score status string and dictionary containing score, status and errors
     """
     if status == "INVALID":
         score_status = "INVALID"
@@ -326,10 +340,10 @@ def get_eval_id(syn: synapseclient.Synapse, submission_id: str) -> str:
 
     Args:
         syn: Synapse connection
-        submission_id (str): the id of submission
+        submission_id: the id of submission
 
     Returns:
-        sub_id (str): the evaluation ID, or None if an error occurs.
+        sub_id: the evaluation ID, or None if an error occurs.
     """
     try:
         eval_id = syn.getSubmission(submission_id).get("evaluationId")
@@ -344,8 +358,8 @@ def update_json(results_path: str, result: dict) -> None:
     """Update the results.json file with the current score and status
 
     Args:
-        results_path (str): path to the results.json file
-        result (dict): dictionary containing score, status and errors
+        results_path: path to the results.json file
+        result: dictionary containing score, status and errors
     """
     file_size = os.path.getsize(results_path)
     with open(results_path, "r") as o:
@@ -374,9 +388,9 @@ if __name__ == "__main__":
     score_status, result = score_submission(
         groundtruth_path, predictions_path, eval_id, status
     )
-    print(result)
 
     # update the scores and status for the submsision
     with open(results_path, "w") as file:
         update_json(results_path, result)
+
     print(score_status)
