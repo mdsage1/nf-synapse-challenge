@@ -34,7 +34,7 @@ def get_args():
 
 
 # Since it's a data-to-model challenge, users will take care of taring their predictions locally
-def tar(directory, tar_filename) -> None:
+def tar(directory: str, tar_filename: str) -> None:
     """Tar all files in a directory without including the directory
     Arguments:
         directory: Directory path to files to tar
@@ -48,7 +48,7 @@ def tar(directory, tar_filename) -> None:
         os.chdir(original_dir)
 
 
-def untar(directory, tar_filename) -> None:
+def untar(directory: str, tar_filename: str) -> None:
     """Untar a tar file into a directory
 
     Arguments:
@@ -62,7 +62,17 @@ def untar(directory, tar_filename) -> None:
 def ode_forecast(
     truth: np.ndarray, prediction: np.ndarray, k: int, modes: int
 ) -> Tuple[float, float]:
-    """Produce long-time and short-time error scores."""
+    """Produce long-time and short-time error scores.
+
+    Arguments:
+        truth: comparison data
+        prediction: predicted data
+        k: number of time steps
+        modes: number of modes to use
+
+    Returns:
+        Tuple of long-time and short-time error scores
+    """
     est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
         truth[:, 0:k], 2
     )
@@ -94,16 +104,26 @@ def ode_forecast(
 
     elt = (eltx + elty + eltz) / 3
 
-    E1 = 100 * (1 - est)
-    E2 = 100 * (1 - elt)
+    e1 = 100 * (1 - est)
+    e2 = 100 * (1 - elt)
 
-    return E1, E2
+    return e1, e2
 
 
 def pde_forecast(
     truth: np.ndarray, prediction: np.ndarray, k: int, modes: int
 ) -> Tuple[float, float]:
-    """produce long-time and short-time error scores."""
+    """produce long-time and short-time error scores.
+
+    Arguments:
+        truth: comparison data
+        prediction: predicted data
+        k: number of time steps
+        modes: number of modes to use
+
+    Returns:
+        Tuple of long-time and short-time error scores
+    """
     [m, n] = truth.shape
     est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
         truth[:, 0:k], 2
@@ -134,16 +154,27 @@ def pde_forecast(
 
     elt = np.linalg.norm(pt - pp, 2) / np.linalg.norm(pt, 2)
 
-    E1 = 100 * (1 - est)
-    E2 = 100 * (1 - elt)
+    e1 = 100 * (1 - est)
+    e2 = 100 * (1 - elt)
 
-    return E1, E2
+    return e1, e2
 
 
 def pde_forecast_2d(
     truth: np.ndarray, prediction: np.ndarray, k: int, modes: int, nf: int
 ) -> Tuple[float, float]:
-    """produce long-time and short-time error scores."""
+    """produce long-time and short-time error scores.
+
+    Arguments:
+        truth: comparison data
+        prediction: predicted data
+        k: number of time steps
+        modes: number of modes to use
+        nf: number of frequencies
+
+    Returns:
+        Tuple of long-time and short-time error scores
+    """
     [_, n] = truth.shape
     est = np.linalg.norm(truth[:, 0:k] - prediction[:, 0:k], 2) / np.linalg.norm(
         truth[:, 0:k], 2
@@ -174,13 +205,24 @@ def pde_forecast_2d(
         pp = np.column_stack((pp, np.log(ppnew)))
 
     elt = np.linalg.norm(pt - pp, 2) / np.linalg.norm(pt, 2)
-    E1 = 100 * (1 - est)
-    E2 = 100 * (1 - elt)
+    e1 = 100 * (1 - est)
+    e2 = 100 * (1 - elt)
 
-    return E1, E2
+    return e1, e2
 
 
 def forecast(truth: np.ndarray, prediction: np.ndarray, system: str) -> List[float]:
+    """Forecast scores.
+
+    Arguments:
+        truth: comparison data
+        prediction: predicted data
+        system: name of the system
+
+    Returns:
+        List of forecast scores
+    """
+
     system_to_forecast = {
         "doublependulum": {
             "function": ode_forecast,
@@ -213,13 +255,13 @@ def reconstruction(truth: np.ndarray, prediction: np.ndarray) -> float:
         prediction: predicted data
 
     Returns:
-        E1: reconstruction fit score
+        e1: reconstruction fit score
     """
     est = np.linalg.norm(truth - prediction, 2) / np.linalg.norm(truth, 2)
 
-    E1 = 100 * (1 - est)
+    e1 = 100 * (1 - est)
 
-    return E1
+    return e1
 
 
 # TODO: Not final, update once organizers confirm all inputs and metrics
