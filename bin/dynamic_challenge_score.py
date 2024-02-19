@@ -170,7 +170,6 @@ def PDE_forecast_2D(
         Ptnew = Pt3[int(nf / 2) - modes : int(nf / 2) + modes + 1]
         # Fixed the variable name
         Ppnew = Pp3[int(nf / 2) - modes : int(nf / 2) + modes + 1]
-        print(Ptnew.shape)
 
         Pt = np.column_stack((Pt, np.log(Ptnew)))
         Pp = np.column_stack((Pp, np.log(Ppnew)))
@@ -202,7 +201,6 @@ def forecast(truth: np.ndarray, prediction: np.ndarray, system: str) -> List[flo
         forecast_func = system_to_forecast[system]["function"]
         forecast_params = system_to_forecast[system]["params"]
         scores = forecast_func(truth, prediction, **forecast_params)
-        print(scores)
         return list(scores)
     else:
         return []
@@ -267,7 +265,6 @@ def calculate_all_scores(
     unique_systems = list(set(true_systems) & set(pred_systems))
 
     for system in unique_systems:
-        print(system)
         for prefix, score_metric, score_keys, score_indices in task_info:
             truth_path = os.path.join(
                 groundtruth_path, f"Test_{system}/{prefix}test.npy"
@@ -275,9 +272,6 @@ def calculate_all_scores(
             pred_path = os.path.join(
                 predictions_path, f"{system}_{prefix}prediction.npy"
             )
-
-            print(truth_path)
-            print(pred_path)
 
             truth = np.load(truth_path)
             pred = np.load(pred_path)
@@ -379,7 +373,7 @@ if __name__ == "__main__":
 
     # login to synapase
     syn = synapseclient.Synapse()
-    syn.login()
+    syn.login(silent=True)
 
     # get the evaluation ID to identify corresponding scoring parameters
     eval_id = get_eval_id(syn, sub_id)
@@ -393,4 +387,5 @@ if __name__ == "__main__":
     with open(results_path, "w") as file:
         update_json(results_path, result)
 
+    # print the status - captured by the workflow outputs
     print(score_status)
