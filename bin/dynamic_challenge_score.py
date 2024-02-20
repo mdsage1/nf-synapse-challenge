@@ -116,7 +116,7 @@ def pde_forecast(
     """produce long-time and short-time error scores.
 
     Arguments:
-        truth: comparison data
+        truth: groundtruth data
         prediction: predicted data
         k: number of time steps
         modes: number of modes to use
