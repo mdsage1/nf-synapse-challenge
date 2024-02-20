@@ -163,7 +163,7 @@ def pde_forecast(
 def pde_forecast_2d(
     truth: np.ndarray, prediction: np.ndarray, k: int, modes: int, nf: int
 ) -> Tuple[float, float]:
-    """produce long-time and short-time error scores.
+    """Produce long-time and short-time error scores on 2D dataset using PDE metric.
 
     Arguments:
         truth: comparison data
