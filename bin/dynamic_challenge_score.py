@@ -215,7 +215,7 @@ def forecast(truth: np.ndarray, prediction: np.ndarray, system: str) -> List[flo
     """Forecast scores.
 
     Arguments:
-        truth: comparison data
+        truth: groundtruth data
         prediction: predicted data
         system: name of the system
 
