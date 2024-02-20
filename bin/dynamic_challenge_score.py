@@ -251,7 +251,7 @@ def reconstruction(truth: np.ndarray, prediction: np.ndarray) -> float:
     """Produce reconstruction fit score.
 
     Arguments:
-        truth: comparison data
+        truth: groundtruth data
         prediction: predicted data
 
     Returns:
