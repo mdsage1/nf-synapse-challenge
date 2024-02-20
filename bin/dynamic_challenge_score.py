@@ -48,15 +48,19 @@ def tar(directory: str, tar_filename: str) -> None:
         os.chdir(original_dir)
 
 
-def untar(directory: str, tar_filename: str) -> None:
+def untar(directory: str, tar_filename: str, pattern="*") -> None:
     """Untar a tar file into a directory
 
     Arguments:
         directory: Path to directory to untar files
         tar_filename:  tar file path
+        pattern: pattern to match
     """
-    with tarfile.open(tar_filename, "r") as tar_o:
-        tar_o.extractall(path=directory)
+    with tarfile.open(tar_filename, "r") as tar_f:
+        for member in tar_f.getmembers():
+            if member.isfile() and member.name.endswith(pattern):
+                member.name = os.path.basename(member.name)
+                tar_f.extract(member, path=directory)
 
 
 def ode_forecast(
@@ -320,16 +324,18 @@ def calculate_all_scores(
                 predictions_path, f"{system}_{prefix}prediction.npy"
             )
 
-            truth = np.load(truth_path)
-            pred = np.load(pred_path)
+            # score provided required files
+            if os.path.exists(pred_path):
+                truth = np.load(truth_path)
+                pred = np.load(pred_path)
 
-            if score_metric == "forecast":
-                scores = forecast(truth, pred, system)
-            else:
-                scores = (reconstruction(truth, pred),)
+                if score_metric == "forecast":
+                    scores = forecast(truth, pred, system)
+                else:
+                    scores = (reconstruction(truth, pred),)
 
-            for key, index in zip(score_keys, score_indices):
-                score_result[f"{system}_{key}"] = scores[index]
+                for key, index in zip(score_keys, score_indices):
+                    score_result[f"{system}_{key}"] = scores[index]
 
     return score_result
 
@@ -340,7 +346,9 @@ def score_submission(
     """Determine the score of a submission.
 
     Arguments:
+        groundtruth_path: path to the groundtruth folder
         predictions_path: path to the predictions file
+        evaluation_id: id of the evaluation queue
         status: current submission status
 
     Returns:
@@ -353,7 +361,7 @@ def score_submission(
         try:
             # assume predictions are compressed into a tarball file
             # untar the predictions into 'predictions' folder
-            untar("predictions", tar_filename=predictions_path)
+            untar("predictions", tar_filename=predictions_path, pattern=".npy")
             # score the predictions
             scores = calculate_all_scores(
                 groundtruth_path, "predictions", evaluation_id
@@ -385,6 +393,9 @@ def get_eval_id(syn: synapseclient.Synapse, submission_id: str) -> str:
 
     Returns:
         sub_id: the evaluation ID, or None if an error occurs.
+
+    Raises:
+        Exception: if an error occurs
     """
     try:
         eval_id = syn.getSubmission(submission_id).get("evaluationId")
