@@ -3,9 +3,10 @@
 import json
 import os
 import sys
+import typing
 
 
-def score_submission(predictions_path: str, status: str) -> dict:
+def score_submission(predictions_path: str, status: str) -> typing.Tuple[str, dict]:
     """Determine the score of a submission. This is a placeholder function.
 
     Args:
