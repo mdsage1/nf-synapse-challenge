@@ -113,7 +113,7 @@ def ode_forecast(
 def pde_forecast(
     truth: np.ndarray, prediction: np.ndarray, k: int, modes: int
 ) -> Tuple[float, float]:
-    """produce long-time and short-time error scores.
+    """Produce long-time and short-time error scores using PDE metric.
 
     Arguments:
         truth: groundtruth data
