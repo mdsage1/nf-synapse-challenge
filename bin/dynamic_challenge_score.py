@@ -11,6 +11,10 @@ from typing import Tuple, List
 import synapseclient
 
 
+INVALID = "INVALID"
+SCORED = "SCORED"
+
+
 def get_args():
     """Set up command-line interface and get arguments without any flags."""
     parser = argparse.ArgumentParser()
@@ -354,8 +358,8 @@ def score_submission(
     Returns:
         Tuple: score status string and dictionary containing score, status and errors
     """
-    if status == "INVALID":
-        score_status = "INVALID"
+    if status == INVALID:
+        score_status = INVALID
         scores = None
     else:
         try:
@@ -366,12 +370,12 @@ def score_submission(
             scores = calculate_all_scores(
                 groundtruth_path, "predictions", evaluation_id
             )
-            score_status = "SCORED"
+            score_status = SCORED
             message = ""
         except Exception as e:
             message = f"Error {e} occurred while scoring"
             scores = None
-            score_status = "INVALID"
+            score_status = INVALID
 
     result = {
         "score_status": score_status,

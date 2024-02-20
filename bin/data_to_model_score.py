@@ -6,6 +6,10 @@ import sys
 import typing
 
 
+INVALID = "INVALID"
+SCORED = "SCORED"
+
+
 def score_submission(predictions_path: str, status: str) -> typing.Tuple[str, dict]:
     """Determine the score of a submission. This is a placeholder function.
 
@@ -16,8 +20,8 @@ def score_submission(predictions_path: str, status: str) -> typing.Tuple[str, di
     Returns:
         result: dictionary containing score, status and errors
     """
-    if status == "INVALID":
-        score_status = "INVALID"
+    if status == INVALID:
+        score_status = INVALID
         score = None
     else:
         # placeholder file reading
@@ -26,12 +30,12 @@ def score_submission(predictions_path: str, status: str) -> typing.Tuple[str, di
         try:
             # placeholder scoring
             score = 1 + 1
-            score_status = "SCORED"
+            score_status = SCORED
             message = ""
         except Exception as e:
             message = f"Error {e} occurred while scoring"
             score = None
-            score_status = "INVALID"
+            score_status = INVALID
     result = {
         "auc": score,
         "score_status": score_status,

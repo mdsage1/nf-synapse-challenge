@@ -8,6 +8,10 @@ import json
 import os
 
 
+INVALID = "INVALID"
+VALIDATED = "VALIDATED"
+
+
 def get_args():
     """Set up command-line interface and get arguments without any flags."""
     parser = argparse.ArgumentParser()
@@ -106,7 +110,7 @@ if __name__ == "__main__":
     invalid_reasons = []
 
     if predictions_path is None:
-        prediction_status = "INVALID"
+        prediction_status = INVALID
         invalid_reasons.append('Error:  No "predictions.tar" found')
     else:
         expected_files = get_expected_filenames(eval_id)
@@ -116,12 +120,12 @@ if __name__ == "__main__":
         matched_files = [f for f in pred_files if f in expected_files]
 
         if not matched_files:
-            prediction_status = "INVALID"
+            prediction_status = INVALID
             invalid_reasons.append(
                 f'Error: No expected prediction file(s) found in the "{predictions_path}.'
             )
         else:
-            prediction_status = "VALIDATED"
+            prediction_status = VALIDATED
 
     result = {
         "validation_status": prediction_status,
