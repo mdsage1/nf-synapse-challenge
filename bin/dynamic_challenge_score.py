@@ -62,7 +62,7 @@ def untar(directory: str, tar_filename: str) -> None:
 def ode_forecast(
     truth: np.ndarray, prediction: np.ndarray, k: int, modes: int
 ) -> Tuple[float, float]:
-    """Produce long-time and short-time error scores.
+    """Produce long-time and short-time error scores using ODE metric.
 
     Arguments:
         truth: groundtruth data
