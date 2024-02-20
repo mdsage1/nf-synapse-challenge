@@ -9,11 +9,11 @@ def score_submission(predictions_path: str, status: str) -> dict:
     """Determine the score of a submission. This is a placeholder function.
 
     Args:
-        predictions_path (str): path to the predictions file
-        status (str): current submission status
+        predictions_path: path to the predictions file
+        status: current submission status
 
     Returns:
-        result (dict): dictionary containing score, status and errors
+        result: dictionary containing score, status and errors
     """
     if status == "INVALID":
         score_status = "INVALID"
@@ -43,8 +43,8 @@ def update_json(results_path: str, result: dict) -> None:
     """Update the results.json file with the current score and status
 
     Args:
-        results_path (str): path to the results.json file
-        result (dict): dictionary containing score, status and errors
+        results_path: path to the results.json file
+        result: dictionary containing score, status and errors
     """
     file_size = os.path.getsize(results_path)
     with open(results_path, "r") as o:
