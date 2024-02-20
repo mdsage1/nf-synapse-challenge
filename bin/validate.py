@@ -7,7 +7,7 @@ import sys
 import zipfile
 
 if __name__ == "__main__":
-    submision_id = sys.argv[1]
+    submission_id = sys.argv[1]
     predictions_path = sys.argv[2]
     invalid_reasons = []
     if predictions_path is None:
@@ -17,7 +17,7 @@ if __name__ == "__main__":
         # Unzipping the predictions and extracting the files in
         # the current working directory
         if ".zip" in os.path.basename(predictions_path):
-            with zipfile.ZipFile(predictions_path, 'r') as zip_ref:
+            with zipfile.ZipFile(predictions_path, "r") as zip_ref:
                 for zip_info in zip_ref.infolist():
                     if zip_info.is_dir():
                         continue
