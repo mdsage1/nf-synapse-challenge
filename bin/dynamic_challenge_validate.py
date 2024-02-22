@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     invalid_reasons = []
 
-    if predictions_path is None:
+    if predictions_path is None or os.path.basename(predictions_path) != 'predictions.tar':
         prediction_status = INVALID
         invalid_reasons.append('Error:  No "predictions.tar" found')
     else:
