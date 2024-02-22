@@ -339,7 +339,8 @@ def calculate_all_scores(
                     scores = (reconstruction(truth, pred),)
 
                 for key, index in zip(score_keys, score_indices):
-                    score_result[f"{system}_{key}"] = scores[index]
+                    # set the score to 0 if negative
+                    score_result[f'{system}_{key}'] = max(scores[index], 0)
 
     return score_result
 
