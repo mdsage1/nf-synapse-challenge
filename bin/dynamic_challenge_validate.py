@@ -122,7 +122,7 @@ if __name__ == "__main__":
         if not matched_files:
             prediction_status = INVALID
             invalid_reasons.append(
-                f'Error: No expected prediction file(s) found in the "{predictions_path}.'
+                f'Error: No expected prediction file(s) found in the {os.path.basename(predictions_path)}.'
             )
         else:
             prediction_status = VALIDATED
