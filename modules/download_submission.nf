@@ -4,17 +4,17 @@ process DOWNLOAD_SUBMISSION {
     label "flexible_compute"
     
     secret "SYNAPSE_AUTH_TOKEN"
-    container "sagebionetworks/challengeutils:v4.2.0"
+    container "sagebionetworks/synapsepythonclient:v4.0.0"
 
     input:
     val submission_id
     val ready
 
     output:
-    tuple val(submission_id), path('*')
+    tuple val(submission_id), path('*'), env(entity_type)
 
     script:
     """
-    challengeutils download-submission ${submission_id}
+    entity_type=\$(download_submission.py '${submission_id}')
     """
 }
