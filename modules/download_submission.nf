@@ -8,13 +8,14 @@ process DOWNLOAD_SUBMISSION {
 
     input:
     val submission_id
+    val file_type_lower
     val ready
 
     output:
-    tuple val(submission_id), path('*'), env(entity_type)
+    tuple val(submission_id), path("*.${file_type_lower}")
 
     script:
     """
-    entity_type=\$(download_submission.py '${submission_id}')
+    download_submission.py -s '${submission_id}' -f '${file_type_lower}'
     """
 }

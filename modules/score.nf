@@ -1,5 +1,5 @@
 // score submission results for model to data challenges
-process SCORE_MODEL_TO_DATA {
+process SCORE {
     tag "${submission_id}"
     
     secret "SYNAPSE_AUTH_TOKEN"
@@ -7,7 +7,7 @@ process SCORE_MODEL_TO_DATA {
 
     input:
     tuple val(submission_id), path(predictions), val(status), path(results)
-    path goldstandard
+    path groundtruth
     val status_ready
     val annotate_ready
     val execute_scoring
@@ -17,6 +17,6 @@ process SCORE_MODEL_TO_DATA {
 
     script:
     """
-    status=\$(${execute_scoring} -p '${predictions}' -g '${goldstandard}' -o '${results}')
+    status=\$(${execute_scoring} -p '${predictions}' -g '${groundtruth}' -o '${results}')
     """
 }
