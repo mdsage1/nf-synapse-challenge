@@ -98,6 +98,7 @@ Before the model-to-data workflow can run, it must be configured for a given Cha
 
 ```
 my_challenge {
+    params.entry = "model_to_data"
     params.view_id = "syn123"
     params.data_folder_id = "syn456"
     params.project_name = "My Project (Write it as it appears on Synapse!)"
@@ -124,6 +125,7 @@ Where the parameters are denoted by `params.[parameter_name]`. Below is the list
 > ```
 > Ensure that your scripts can be called in this way without issue.
 
+1. `entry` (required & case-sensitive): Designate which workflow should be used (`data_to_model` or `model_to_data`). Case-sensitive.
 1. `submissions` (required if `manifest` is not provided): A comma separated list of submission IDs to evaluate.
 1. `manifest` (required if `submissions` is not provided): A path to a submission manifest containing submissions IDs to evaluate.
 1. `project_name` (required & case-sensitive): The name of your Project the Challenge is running in.
@@ -143,14 +145,14 @@ Where the parameters are denoted by `params.[parameter_name]`. Below is the list
 
 ### Running the workflow
 
-Run the workflow locally with default inputs and a `submissions` string input:
+Run the workflow locally with required inputs and using `submissions` parameter instead of `manifest`:
 ```
-nextflow run main.nf -entry MODEL_TO_DATA_CHALLENGE -profile local --submissions 9741046,9741047
+nextflow run main.nf -profile local --entry data_to_model --submissions 9741046,9741047 --project_name My_Project --view_id 123 --data_folder_id 456 --groundtruth_id 789 --challenge_container 
 ```
 
-With a `manifest` input:
+Run the workflow locally with required inputs and using `manifest` parameter instead of `submissions`:
 ```
-nextflow run main.nf -entry DATA_TO_MODEL_CHALLENGE -profile local --manifest assets/model_to_data_submission_manifest.csv
+nextflow run main.nf -profile local --entry data_to_model --manifest assets/model_to_data_submission_manifest.csv  --project_name My_Project --view_id 123 --data_folder_id 456 --groundtruth_id 789 --challenge_container ghcr.io/jaymedina/test_model2data:latest
 ```
 
 
