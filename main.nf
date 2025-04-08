@@ -1,5 +1,10 @@
 nextflow.enable.dsl = 2
 
+valid_entry_points = ['data_to_model', 'model_to_data']
+if (!valid_entry_points.contains(params.entry)) {
+    error "Invalid entry point: '${params.entry}'. Valid options are: ${valid_entry_points.join(', ')}"
+}
+
 // Evaluates data-to-model challenges hosted on Synapse
 include { DATA_TO_MODEL } from './workflows/DATA_TO_MODEL.nf'
 // Evaluates model-to-data challenges hosted on Synapse
