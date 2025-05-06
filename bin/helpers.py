@@ -4,9 +4,12 @@ import os
 from typing import List
 
 import synapseclient
+from synapseclient.core.exceptions import SynapseHTTPError
+from synapseclient.models.team import Team
+from synapseclient.models.user import UserProfile
 
 
-def get_participant_id(syn: synapseclient.Synapse, submission_id: str) -> List[str]:
+def get_participant_id(syn: synapseclient.Synapse, submission_id: str) -> List[int]:
     """
     Retrieves the teamId of the participating team that made
     the submission. If the submitter is an individual rather than
@@ -28,7 +31,28 @@ def get_participant_id(syn: synapseclient.Synapse, submission_id: str) -> List[s
 
     # Ensure that the participant_id returned is a list
     # so it can be fed into syn.sendMessage(...) later.
-    return [participant_id]
+    return [int(participant_id)]
+
+
+def get_participant_name(syn: synapseclient.Synapse, participant_id: List[int]) -> str:
+    """
+    Retrieves the name of a participant.
+    If it's a user, then the username is retrieved. If it's a team, then the team name is retrieved.
+
+    Arguments:
+        syn: A Synapse Python client instance
+        participant_id: A list containing the ID of the participant
+
+    Returns:
+        The name of the participant
+
+    """
+    try:
+        name = UserProfile.from_id(participant_id[0], synapse_client=syn).username
+    except SynapseHTTPError:
+        name = Team.from_id(participant_id[0], synapse_client=syn).name
+
+    return name
 
 
 def rename_file(submission_id: str, input_path: str) -> None:

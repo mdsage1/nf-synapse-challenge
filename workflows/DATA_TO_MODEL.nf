@@ -43,13 +43,13 @@ workflow DATA_TO_MODEL {
 
     // Phase 1: Notify users that evaluation of their submission has begun
     UPDATE_SUBMISSION_STATUS_BEFORE_EVALUATION(submission_ch, "EVALUATION_IN_PROGRESS")
-    // if (params.send_email) {
-    //     SEND_EMAIL_BEFORE(params.email_script, params.view_id, submission_ch, "BEFORE", params.email_with_score, "ready")
-    // }
+    if (params.send_email) {
+        SEND_EMAIL_BEFORE(params.email_script, params.view_id, params.project_name, submission_ch, "BEFORE", params.email_with_score, "ready")
+    }
 
     // Phase 2: Prepare the data: Download the submission and stage the groundtruth data on S3
     SYNAPSE_STAGE_GROUNDTRUTH(params.groundtruth_id, "groundtruth_${params.groundtruth_id}")
-    download_submission_outputs = DOWNLOAD_SUBMISSION(submission_ch, params.file_type_lower, UPDATE_SUBMISSION_STATUS_BEFORE_EVALUATION.output)
+    download_submission_outputs = DOWNLOAD_SUBMISSION(submission_ch, params.file_type_lower, UPDATE_SUBMISSION_STATUS_BEFORE_EVALUATION.output, SEND_EMAIL_BEFORE.output)
     //// Explicit output handling
     download_submission_id = download_submission_outputs.map { submission_id, predictions -> submission_id }
     download_submission_predictions = download_submission_outputs.map { submission_id, predictions -> predictions }
@@ -73,6 +73,6 @@ workflow DATA_TO_MODEL {
     ANNOTATE_SUBMISSION_AFTER_SCORE(score_outputs)
     //// Send email
     if (params.send_email) {
-        SEND_EMAIL_AFTER(params.email_script, params.view_id, submission_ch, "AFTER", params.email_with_score, ANNOTATE_SUBMISSION_AFTER_SCORE.output)
+        SEND_EMAIL_AFTER(params.email_script, params.view_id, params.project_name, submission_ch, "AFTER", params.email_with_score, ANNOTATE_SUBMISSION_AFTER_SCORE.output)
     }
 }

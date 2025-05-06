@@ -50,17 +50,17 @@ def email_template(
         (
             "VALIDATED",
             "yes",
-        ): f"Submission {submission_id} has been evaluated with the following scores:\n"
+        ): f"Submission <b>{submission_id}</b> for the <b>{project_name}</b> project has been evaluated with the following scores:\n"
         + "\n".join(get_score_dict(score))
         + f"\nView all your scores here: https://www.synapse.org/#!Synapse:{view_id}/tables/",
         (
             "VALIDATED",
             "no",
-        ): f"Submission {submission_id} has been evaluated. Your score will be available after Challenge submissions are closed. Thank you for participating!",
+        ): f"Submission <b>{submission_id}</b> for the <b>{project_name}</b> project has been evaluated. Your score will be available after Challenge submissions are closed. Thank you for participating!",
         (
             "INVALID",
             "yes",
-        ): f"Evaluation failed for Submission {submission_id}."
+        ): f"Evaluation failed for Submission <b>{submission_id}</b> for the <b>{project_name}</b> project."
         + "\n"
         + f"Reason: '{reason}'."
         + "\n\n"
@@ -68,7 +68,7 @@ def email_template(
         (
             "INVALID",
             "no",
-        ): f"Evaluation failed for Submission {submission_id}."
+        ): f"Evaluation failed for Submission <b>{submission_id}</b> for the <b>{project_name}</b> project."
         + "\n"
         + f"Reason: '{reason}'."
         + "\n"
@@ -124,7 +124,7 @@ def get_annotations(syn: synapseclient.Synapse, submission_id: str) -> NamedTupl
     )
 
 
-def send_email(view_id: str, submission_id: str, email_with_score: str):
+def send_email(view_id: str, submission_id: str, email_with_score: str, notification_type: str, project_name: str):
     """
     Sends an e-mail on the status of the individual submission
     to the submitting team or individual.
@@ -132,6 +132,8 @@ def send_email(view_id: str, submission_id: str, email_with_score: str):
     Arguments:
       view_id: The view Id of the Submission View on Synapse
       submission_id: The ID for an individual submission within an evaluation queue
+      email_with_score: Whether to include the score in the e-mail
+      notification_type: The type of notification to send (determines the subject and body of e-mail)
 
     """
     # Initiate connection to Synapse
@@ -140,34 +142,48 @@ def send_email(view_id: str, submission_id: str, email_with_score: str):
     # Get MODEL_TO_DATA annotations for the given submission
     submission_annotations = get_annotations(syn, submission_id)
 
-    # Get the Synapse users to send an e-mail to
-    ids_to_notify = helpers.get_participant_id(syn, submission_id)
+    # Get the Synapse user/team to send an e-mail to
+    participant_id = helpers.get_participant_id(syn, submission_id)
 
-    # Create the subject and body of the e-mail message, depending on submission status
-    subject = (
-        f"Evaluation Success: {submission_id}"
-        if submission_annotations.status == "VALIDATED"
-        else f"Evaluation Failed: {submission_id}"
-    )
-    body = email_template(
-        submission_annotations.status,
-        email_with_score,
-        submission_id,
-        view_id,
-        submission_annotations.score,
-        submission_annotations.reason,
-    )
+    # Get the name of the participant user/team
+    participant_name = helpers.get_participant_name(syn, participant_id)
 
-    # Sends an e-mail notifying participant(s) that the evaluation succeeded or failed
-    syn.sendMessage(userIds=ids_to_notify, messageSubject=subject, messageBody=body)
+    # Create the subject and body of the e-mail message, depending on
+    # the notification type and submission status:
+    if notification_type.upper() == "BEFORE":
+        # Before-evaluation notification
+        subject = f"Evaluation Started: {submission_id}"
+        body = (
+            f"Dear {participant_name},\n\n"
+            f"Your submission <b>{submission_id}</b> for the <b>{project_name}</b> project is now being evaluated. "
+            "We will notify you again once the evaluation completes.\n\n"
+            "Thank you for your participation!\n\n"
+            "The Challenge Organizers"
+        )
+    else:
+        # After-evaluation notification
+        subject = (
+            f"Evaluation Success: {submission_id}"
+            if submission_annotations.status == "VALIDATED"
+            else f"Evaluation Failed: {submission_id}"
+        )
+        body = email_template(
+            submission_annotations.status,
+            email_with_score,
+            submission_id,
+            view_id,
+            submission_annotations.score,
+            submission_annotations.reason,
+        )
+
+    syn.sendMessage(userIds=participant_id, messageSubject=subject, messageBody=body)
 
 
 if __name__ == "__main__":
     view_id = sys.argv[1]
     submission_id = sys.argv[2]
     email_with_score = sys.argv[3]
-    # This is here despite not currently being used.
-    # This is so that we can still use one `send_email.nf` process while supporting both `BEFORE` and `AFTER` notifications
     notification_type = sys.argv[4]
+    project_name = sys.argv[5]
 
-    send_email(view_id, submission_id, email_with_score)
+    send_email(view_id, submission_id, email_with_score, notification_type, project_name)

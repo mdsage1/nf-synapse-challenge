@@ -18,9 +18,9 @@ params.poll_interval = "1"
 // The challenge task for which the submissions are made
 params.task_number = 1
 // The command used to execute the Challenge scoring script in the base directory of the challenge_container: e.g. `python3 path/to/score.py`
-params.execute_scoring = "python3 /usr/local/bin/score.py"
+params.execute_scoring = "python3 /home/user/score.py"
 // The command used to execute the Challenge validation script in the base directory of the challenge_container: e.g. `python3 path/to/validate.py`
-params.execute_validation = "python3 /usr/local/bin/validate.py"
+params.execute_validation = "python3 /home/user/validate.py"
 // Toggle email notification
 params.send_email = true
 // Set email script
@@ -46,7 +46,8 @@ include { SCORE } from '../modules/score.nf'
 include { ANNOTATE_SUBMISSION as ANNOTATE_SUBMISSION_AFTER_VALIDATE } from '../modules/annotate_submission.nf'
 include { ANNOTATE_SUBMISSION as ANNOTATE_SUBMISSION_AFTER_SCORE } from '../modules/annotate_submission.nf'
 include { ANNOTATE_SUBMISSION as ANNOTATE_SUBMISSION_AFTER_UPDATE_FOLDERS } from '../modules/annotate_submission.nf'
-include { SEND_EMAIL } from '../modules/send_email.nf'
+include { SEND_EMAIL as SEND_EMAIL_BEFORE } from '../modules/send_email.nf'
+include { SEND_EMAIL as SEND_EMAIL_AFTER } from '../modules/send_email.nf'
 
 workflow MODEL_TO_DATA {
 
@@ -54,13 +55,17 @@ workflow MODEL_TO_DATA {
     submission_ch = CREATE_SUBMISSION_CHANNEL()
 
     // Phase 1: Prepare the data for scoring and create output folders on Synapse
+    //          + Notify users that evaluation of their submission has begun
+    if (params.send_email) {
+        SEND_EMAIL_BEFORE(params.email_script, params.view_id, params.project_name, submission_ch, "BEFORE", params.email_with_score, "ready")
+    }
     SYNAPSE_STAGE_DATA(params.data_folder_id, "input")
     SYNAPSE_STAGE_GROUNDTRUTH(params.groundtruth_id, "groundtruth_${params.groundtruth_id}")
     CREATE_FOLDERS(submission_ch, params.project_name, params.private_folders)
     UPDATE_SUBMISSION_STATUS_BEFORE_RUN(submission_ch, "EVALUATION_IN_PROGRESS")
 
     // Phase 2: Running the Docker submission (runs after Phase 1 data staging)
-    run_docker_outputs = RUN_DOCKER(submission_ch, params.container_timeout, params.poll_interval, SYNAPSE_STAGE_DATA.output, params.cpus, params.memory, params.log_max_size, CREATE_FOLDERS.output, UPDATE_SUBMISSION_STATUS_BEFORE_RUN.output)
+    run_docker_outputs = RUN_DOCKER(submission_ch, params.container_timeout, params.poll_interval, SYNAPSE_STAGE_DATA.output, params.cpus, params.memory, params.log_max_size, CREATE_FOLDERS.output, UPDATE_SUBMISSION_STATUS_BEFORE_RUN.output, SEND_EMAIL_BEFORE.output)
     //// Explicit output handling
     run_docker_submission = run_docker_outputs.map { submission_id, predictions, logs -> submission_id }
     run_docker_files = run_docker_outputs.map { submission_id, predictions, logs -> tuple(predictions, logs) }
@@ -88,6 +93,6 @@ workflow MODEL_TO_DATA {
     ANNOTATE_SUBMISSION_AFTER_SCORE(score_outputs)
     //// Send email
     if (params.send_email) {
-        SEND_EMAIL(params.email_script, params.view_id, score_submission, "AFTER", params.email_with_score, ANNOTATE_SUBMISSION_AFTER_SCORE.output)
+        SEND_EMAIL_AFTER(params.email_script, params.view_id, params.project_name, score_submission, "AFTER", params.email_with_score, ANNOTATE_SUBMISSION_AFTER_SCORE.output)
     }
 }
